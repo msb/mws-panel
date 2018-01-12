@@ -76,10 +76,7 @@ def launch_ansible_async(service, ignore_host_key=False):
                 if ignore_host_key:
                     userv_cmd.extend(["--defvar", "ANSIBLE_HOST_KEY_CHECKING=False"])
                 userv_cmd.extend(["mws-admin", "mws_ansible_host", vm.network_configuration.name])
-                ssh_cmd = [
-                    'ssh', '-i', settings.USERV_SSH_KEY, '-t', settings.USERV_SSH_TARGET, '"%s"' % " ".join(userv_cmd)
-                ]
-                print(ssh_cmd)
+                ssh_cmd = ['ssh', '-i', settings.USERV_SSH_KEY, '-t', settings.USERV_SSH_TARGET, " ".join(userv_cmd)]
                 subprocess.check_output(ssh_cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise launch_ansible_async.retry(exc=e)
