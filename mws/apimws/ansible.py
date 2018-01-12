@@ -1,6 +1,7 @@
 import logging
 import subprocess
 from celery import shared_task, Task
+from django.conf import settings
 from django.utils import timezone
 
 from sitesmanagement.models import Site, Snapshot, Service, Vhost
@@ -75,7 +76,11 @@ def launch_ansible_async(service, ignore_host_key=False):
                 if ignore_host_key:
                     userv_cmd.extend(["--defvar", "ANSIBLE_HOST_KEY_CHECKING=False"])
                 userv_cmd.extend(["mws-admin", "mws_ansible_host", vm.network_configuration.name])
-                subprocess.check_output(userv_cmd, stderr=subprocess.STDOUT)
+                ssh_cmd = [
+                    'ssh', '-i', settings.USERV_SSH_KEY, '-t', settings.USERV_SSH_TARGET, '"%s"' % " ".join(userv_cmd)
+                ]
+                print(ssh_cmd)
+                subprocess.check_output(ssh_cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise launch_ansible_async.retry(exc=e)
         service = refresh_object(service)
