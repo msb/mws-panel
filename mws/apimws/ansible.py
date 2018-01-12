@@ -67,7 +67,8 @@ class AnsibleTaskWithFailure(Task):
             service.save()
 
 
-@shared_task(base=AnsibleTaskWithFailure, default_retry_delay=120, max_retries=2)
+# FIXME max_retries=2
+@shared_task(base=AnsibleTaskWithFailure, default_retry_delay=120, max_retries=0)
 def launch_ansible_async(service, ignore_host_key=False):
     while service.status != 'ready':
         try:
@@ -76,7 +77,7 @@ def launch_ansible_async(service, ignore_host_key=False):
                 if ignore_host_key:
                     userv_cmd.extend(["--defvar", "ANSIBLE_HOST_KEY_CHECKING=False"])
                 userv_cmd.extend(["mws-admin", "mws_ansible_host", vm.network_configuration.name])
-                ssh_cmd = ['ssh', '-i', settings.USERV_SSH_KEY, '-t', settings.USERV_SSH_TARGET, " ".join(userv_cmd)]
+                ssh_cmd = ['ssh', '-i', settings.USERV_SSH_KEY, settings.USERV_SSH_TARGET, " ".join(userv_cmd)]
                 subprocess.check_output(ssh_cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise launch_ansible_async.retry(exc=e)
