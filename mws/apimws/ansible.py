@@ -4,7 +4,6 @@ from celery import shared_task, Task
 from django.conf import settings
 from django.utils import timezone
 
-from apimws.utils import execute_userv_process
 from sitesmanagement.models import Site, Snapshot, Service, Vhost
 
 
@@ -77,6 +76,7 @@ def launch_ansible_async(service, ignore_host_key=False):
                 if ignore_host_key:
                     userv_cmd.extend(["--defvar", "ANSIBLE_HOST_KEY_CHECKING=False"])
                 userv_cmd.extend(["mws-admin", "mws_ansible_host", vm.network_configuration.name])
+                from apimws.utils import execute_userv_process
                 execute_userv_process([
                     'ssh', '-i', settings.USERV_SSH_KEY, settings.USERV_SSH_TARGET, " ".join(userv_cmd)
                 ], stderr=subprocess.STDOUT)
@@ -135,6 +135,7 @@ def execute_playbook_on_vms(service, playbook_args):
     for vm in service.virtual_machines.all():
         cmd = ["mws-admin", "mws_ansible_host_d", vm.network_configuration.name]
         cmd.extend(playbook_args)
+        from apimws.utils import execute_userv_process
         execute_userv_process(cmd, stderr=subprocess.STDOUT)
     return
 
@@ -143,6 +144,7 @@ def execute_playbook_on_vms(service, playbook_args):
 def delete_vhost_ansible(service, vhost_name, vhost_webapp):
     """delete the vhost folder and all its contents"""
     for vm in service.virtual_machines.all():
+        from apimws.utils import execute_userv_process
         execute_userv_process([
             "mws-admin", "mws_delete_vhost", vm.network_configuration.name, "--tags", "delete_vhost",
             "-e", "delete_vhost_name=%s delete_vhost_webapp=%s" % (vhost_name, vhost_webapp)
@@ -156,6 +158,7 @@ def vhost_enable_apache_owned(vhost_id):
     """Changes ownership of the docroot folder to the user www-data"""
     vhost = Vhost.objects.get(id=vhost_id)
     for vm in vhost.service.virtual_machines.all():
+        from apimws.utils import execute_userv_process
         execute_userv_process([
             "mws-admin", "mws_vhost_owner", vm.network_configuration.name, vhost.name, "enable"
         ], stderr=subprocess.STDOUT)
@@ -169,6 +172,7 @@ def vhost_disable_apache_owned(vhost_id):
     """Revert the ownership of the docroot folder back to site-admin"""
     vhost = Vhost.objects.get(id=vhost_id)
     for vm in vhost.service.virtual_machines.all():
+        from apimws.utils import execute_userv_process
         execute_userv_process([
             "mws-admin", "mws_vhost_owner", vm.network_configuration.name, vhost.name, "disable"
         ], stderr=subprocess.STDOUT)
