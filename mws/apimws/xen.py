@@ -10,7 +10,6 @@ from django.core.urlresolvers import reverse
 from apimws.ansible import launch_ansible
 from apimws.ipreg import set_sshfp
 from apimws.models import Cluster
-from apimws.utils import execute_userv_process
 from apimws.views import post_installation, post_recreate
 from libs.sshpubkey import SSHPubKey
 from mws.celery import app
@@ -38,6 +37,7 @@ def vm_api_request(command, parameters, vm):
     api_command.append(command)
     api_command.append("'%s'" % json.dumps(parameters))
     try:
+        from apimws.utils import execute_userv_process
         response = execute_userv_process(api_command, stderr=subprocess.STDOUT)
         LOGGER.info("VM API request: %s\nVM API response: %s", api_command, response)
     except subprocess.CalledProcessError as e:
@@ -65,6 +65,7 @@ def secrets_prealocation_vm(vm):
     service = vm.service
 
     for keytype in SiteKey.ALGORITHMS:
+        from apimws.utils import execute_userv_process
         response = execute_userv_process(["mws-admin", "mws_pubkey"])
         try:
             # MSB test this

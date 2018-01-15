@@ -13,7 +13,6 @@ from django.views.decorators.csrf import csrf_exempt
 from stronghold.decorators import public
 from apimws.ansible import launch_ansible_async, AnsibleTaskWithFailure, ansible_change_mysql_root_pwd
 from apimws.ipreg import get_nameinfo
-from apimws.utils import execute_userv_process
 from mwsauth.utils import get_or_create_group_by_groupid, privileges_check
 from sitesmanagement.models import DomainName, EmailConfirmation, VirtualMachine, Billing, Site, Vhost
 from ucamlookup import user_in_groups
@@ -111,6 +110,7 @@ def post_installOS(service):
     if service.type == 'production':
         ansible_change_mysql_root_pwd(service)
     if service.type == 'test':
+        from apimws.utils import execute_userv_process
         execute_userv_process(["mws-admin", "mws_clone",
                                service.site.production_service.virtual_machines.first().name,
                                service.virtual_machines.first().name])
