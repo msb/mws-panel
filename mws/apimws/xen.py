@@ -65,13 +65,17 @@ def secrets_prealocation_vm(vm):
     service = vm.service
 
     for keytype in SiteKey.ALGORITHMS:
-        from apimws.utils import execute_userv_process
-        response = execute_userv_process(["mws-admin", "mws_pubkey"])
+        p = subprocess.Popen(
+            ['ssh', '-i', settings.USERV_SSH_KEY, settings.USERV_SSH_TARGET, 'userv mws-admin mws_pubkey'],
+            stdin=subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE
+        )
+        stdout, stderr = p.communicate(json.dumps(
+            {"id": "mwssite-%d" % service.site.id, "keytype": "ssh" + keytype.lower()})
+        )
         try:
-            # MSB test this
-            result = json.loads(response)
+            result = json.loads(stdout)
         except ValueError as e:
-            LOGGER.error("mws_pubkey response is not properly formated:\nresponse: %s" % (response))
+            LOGGER.error("mws_pubkey response is not properly formated:\nstdout: %s\nstderr: %s" % (stdout, stderr))
             raise e
 
         pubkey = SSHPubKey(result["pubkey"])

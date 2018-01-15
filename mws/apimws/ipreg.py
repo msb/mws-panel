@@ -17,7 +17,6 @@ def ip_reg_call(call):
                      % (excp.cmd, excp.returncode, excp.output))
         raise excp
     try:
-        # MSB test this
         result = json.loads(response)
     except ValueError as e:
         LOGGER.error("IPREG API response to call (%s) is not properly formatted: %s", call, response)
