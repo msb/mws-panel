@@ -77,9 +77,7 @@ def launch_ansible_async(service, ignore_host_key=False):
                     userv_cmd.extend(["--defvar", "ANSIBLE_HOST_KEY_CHECKING=False"])
                 userv_cmd.extend(["mws-admin", "mws_ansible_host", vm.network_configuration.name])
                 from apimws.utils import execute_userv_process
-                execute_userv_process([
-                    'ssh', '-i', settings.USERV_SSH_KEY, settings.USERV_SSH_TARGET, " ".join(userv_cmd)
-                ], stderr=subprocess.STDOUT)
+                execute_userv_process(userv_cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise launch_ansible_async.retry(exc=e)
         service = refresh_object(service)
