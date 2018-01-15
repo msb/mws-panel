@@ -4,20 +4,20 @@ import subprocess
 from celery import shared_task
 from django.conf import settings
 from apimws.jackdaw import SSHTaskWithFailure
-
+from apimws.utils import execute_userv_process
 
 LOGGER = logging.getLogger('mws')
 
 
 def ip_reg_call(call):
     try:
-        response = subprocess.check_output(settings.IP_REG_API_END_POINT + call)
+        response = execute_userv_process(['mws-admin', 'mws_ipreg', settings.IP_REG_API_ENV] + call)
     except subprocess.CalledProcessError as excp:
-        error_message = json.loads(excp.output)['message']
         LOGGER.error("IPREG API Call: %s\n\nFAILED with exit code %i:\n%s"
                      % (excp.cmd, excp.returncode, excp.output))
         raise excp
     try:
+        # MSB test this
         result = json.loads(response)
     except ValueError as e:
         LOGGER.error("IPREG API response to call (%s) is not properly formatted: %s", call, response)

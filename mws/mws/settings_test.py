@@ -67,12 +67,10 @@ MIDDLEWARE_CLASSES += (
 USERV_SSH_TARGET = 'www-data@test.dev.mws3.csx.cam.ac.uk'
 USERV_SSH_KEY = '/data/containerised_mws_panel_key'
 
-VM_END_POINT_COMMAND = ["userv", "mws-admin", "mws_xen_vm_api"]
+VM_END_POINT_COMMAND = ["mws-admin", "mws_xen_vm_api"]
 VM_API = "xen"
 
 EMAIL_TIMEOUT = 60
-
-IP_REG_API_END_POINT = IP_REG_API_END_POINT + ['dev']
 
 OS_VERSION_VMXENAPI = "stretch"
 OS_DUE_UPGRADE = ["jessie"]

@@ -10,6 +10,7 @@ from django.core.urlresolvers import reverse
 from apimws.ansible import launch_ansible
 from apimws.ipreg import set_sshfp
 from apimws.models import Cluster
+from apimws.utils import execute_userv_process
 from apimws.views import post_installation, post_recreate
 from libs.sshpubkey import SSHPubKey
 from mws.celery import app
@@ -37,7 +38,7 @@ def vm_api_request(command, parameters, vm):
     api_command.append(command)
     api_command.append("'%s'" % json.dumps(parameters))
     try:
-        response = subprocess.check_output(api_command, stderr=subprocess.STDOUT)
+        response = execute_userv_process(api_command, stderr=subprocess.STDOUT)
         LOGGER.info("VM API request: %s\nVM API response: %s", api_command, response)
     except subprocess.CalledProcessError as e:
         LOGGER.error("VM API request: %s\nVM API response: %s", api_command, e.output)
@@ -47,6 +48,7 @@ def vm_api_request(command, parameters, vm):
 
 class XenWithFailure(Task):
     abstract = True
+
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         if type(exc) is subprocess.CalledProcessError:
             LOGGER.error("An error happened when trying to communicate with Xen's VM API.\nThe task id is %s.\n\n"
@@ -63,14 +65,12 @@ def secrets_prealocation_vm(vm):
     service = vm.service
 
     for keytype in SiteKey.ALGORITHMS:
-        p = subprocess.Popen(["userv", "mws-admin", "mws_pubkey"], stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate(json.dumps({"id": "mwssite-%d" % service.site.id,
-                                                   "keytype": "ssh"+keytype.lower()}))
+        response = execute_userv_process(["mws-admin", "mws_pubkey"])
         try:
-            result = json.loads(stdout)
+            # MSB test this
+            result = json.loads(response)
         except ValueError as e:
-            LOGGER.error("mws_pubkey response is not properly formated:\nstdout: %s\nstderr: %s" % (stdout, stderr))
+            LOGGER.error("mws_pubkey response is not properly formated:\nresponse: %s" % (response))
             raise e
 
         pubkey = SSHPubKey(result["pubkey"])
@@ -101,9 +101,10 @@ def secrets_prealocation_vm(vm):
 
 @shared_task(base=XenWithFailure)
 def new_site_primary_vm(service, host_network_configuration=None):
-    parameters = {}
-    parameters["site-id"] = "mwssite-%d" % service.site.id
-    parameters["os"] = getattr(settings, 'OS_VERSION_VMXENAPI', "jessie")
+    parameters = {
+        "site-id": "mwssite-%d" % service.site.id,
+        "os": getattr(settings, 'OS_VERSION_VMXENAPI', "jessie")
+    }
 
     if host_network_configuration:
         netconf = {}
@@ -137,6 +138,7 @@ def new_site_primary_vm(service, host_network_configuration=None):
     response = vm_api_request(command='create', parameters=parameters, vm=vm)
 
     try:
+        # MSB test this
         jresponse = json.loads(response)
     except ValueError as e:
         LOGGER.error("VM API response is not properly formated: %s", response)
@@ -149,7 +151,7 @@ def new_site_primary_vm(service, host_network_configuration=None):
             vm.name = jresponse['vmid']
         else:
             vm.name = vm.network_configuration.name
-    except Exception as e:
+    except Exception:
         vm.name = vm.network_configuration.name
     vm.save()
     from apimws.models import AnsibleConfiguration
@@ -170,8 +172,9 @@ def recreate_vm(vm_id):
     vm = VirtualMachine.objects.get(pk=vm_id)
     service = vm.service
     network_configuration = vm.network_configuration
-    parameters = {}
-    parameters["site-id"] = "mwssite-%d" % service.site.id
+    parameters = {
+        "site-id": "mwssite-%d" % service.site.id
+    }
     netconf = {}
     if network_configuration.IPv4:
         netconf["IPv4"] = network_configuration.IPv4
@@ -214,7 +217,7 @@ def recreate_vm(vm_id):
             vm.name = jresponse['vmid']
         else:
             vm.name = vm.network_configuration.name
-    except Exception as e:
+    except Exception:
         vm.name = vm.network_configuration.name
     vm.save()
 
@@ -224,9 +227,10 @@ def change_vm_power_state(vm_id, on):
     if on != 'on' and on != 'off':
         raise VMAPIInputException("passed wrong parameter power %s" % on)
     vm = VirtualMachine.objects.get(pk=vm_id)
-    lock = filter(lambda x: x and x['name'] == u'apimws.xen.change_vm_power_state' and
-                            x['args'] == u"(%s, '%s')" % (vm_id, on),
-                  [item for sublist in app.control.inspect().active().values() for item in sublist])
+    lock = filter(
+        lambda x: x and x['name'] == u'apimws.xen.change_vm_power_state' and x['args'] == u"(%s, '%s')" % (vm_id, on),
+        [item for sublist in app.control.inspect().active().values() for item in sublist]
+    )
     if len(lock) == 1:
         vm_api_request(command='button', parameters={"action": "power%s" % on, "vmid": vm.name}, vm=vm)
         return True
@@ -257,9 +261,10 @@ def destroy_vm(vm_id):
 def clone_vm_api_call(site):
     service = site.test_service
     host_network_configuration = NetworkConfig.get_free_host_config()
-    parameters = {}
-    parameters["site-id"] = "mwssite-%d" % service.site.id
-    parameters["os"] = getattr(settings, 'OS_VERSION_VMXENAPI', "jessie")
+    parameters = {
+        "site-id": "mwssite-%d" % service.site.id,
+        "os": getattr(settings, 'OS_VERSION_VMXENAPI', "jessie")
+    }
 
     if host_network_configuration:
         netconf = {}
@@ -299,7 +304,7 @@ def clone_vm_api_call(site):
             vm.name = jresponse['vmid']
         else:
             vm.name = vm.network_configuration.name
-    except Exception as e:
+    except Exception:
         vm.name = vm.network_configuration.name
     vm.save()
     from apimws.models import AnsibleConfiguration

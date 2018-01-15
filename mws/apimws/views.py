@@ -1,6 +1,5 @@
 import calendar
 import logging
-import subprocess
 from datetime import date, datetime, timedelta
 from time import mktime
 from celery import shared_task
@@ -14,6 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from stronghold.decorators import public
 from apimws.ansible import launch_ansible_async, AnsibleTaskWithFailure, ansible_change_mysql_root_pwd
 from apimws.ipreg import get_nameinfo
+from apimws.utils import execute_userv_process
 from mwsauth.utils import get_or_create_group_by_groupid, privileges_check
 from sitesmanagement.models import DomainName, EmailConfirmation, VirtualMachine, Billing, Site, Vhost
 from ucamlookup import user_in_groups
@@ -24,7 +24,7 @@ logger = logging.getLogger('mws')
 
 @login_required
 def confirm_dns(request, dn_id, token=None):
-    if token == None or token == "":
+    if token is None or token == "":
         return HttpResponseForbidden()
     dn = get_object_or_404(DomainName, pk=dn_id, token=token)
     nameinfo = get_nameinfo(dn.name)
@@ -36,11 +36,11 @@ def confirm_dns(request, dn_id, token=None):
         dn.authorised_by = request.user
         if request.POST.get('accepted') == '1':
             if changeable is False:
-                return render(request, 'api/confirm_dns.html', {'dn': dn, 'changeable': changeable,})
+                return render(request, 'api/confirm_dns.html', {'dn': dn, 'changeable': changeable, })
             dn.accept_it()
         else:
             dn.reject_it(request.POST.get('reason'))
-    return render(request, 'api/confirm_dns.html', {'dn': dn, 'changeable': changeable,})
+    return render(request, 'api/confirm_dns.html', {'dn': dn, 'changeable': changeable, })
 
 
 @login_required
@@ -111,9 +111,9 @@ def post_installOS(service):
     if service.type == 'production':
         ansible_change_mysql_root_pwd(service)
     if service.type == 'test':
-        subprocess.check_output(["userv", "mws-admin", "mws_clone",
-                                 service.site.production_service.virtual_machines.first().name,
-                                 service.virtual_machines.first().name])
+        execute_userv_process(["mws-admin", "mws_clone",
+                               service.site.production_service.virtual_machines.first().name,
+                               service.virtual_machines.first().name])
     if service.site.preallocated:
         service.site.disable()
 
@@ -217,29 +217,30 @@ def statsdatainuse(request):
         ])
         odate = add_months(odate)
     data = [{
-      "key" : "MWS Servers",
-      "values" : values
+      "key": "MWS Servers",
+      "values": values
     }, ]
     return JsonResponse(data, safe=False)
 
 
 @public
 def statsdataactive(request):
-    all = Site.objects.filter(Q(end_date__gt=datetime.today().date()) | Q(end_date__isnull=True), preallocated=False)
+    all_sites = Site.objects.filter(Q(end_date__gt=datetime.today().date()) | Q(end_date__isnull=True),
+                                    preallocated=False)
     external_domains = DomainName.objects.exclude(name__endswith="mws3.csx.cam.ac.uk")
-    active = all.filter(services__vhosts__domain_names__in=external_domains).distinct().count()
+    active = all_sites.filter(services__vhosts__domain_names__in=external_domains).distinct().count()
     websites = Vhost.objects.filter(service__site__preallocated=False, service__site__end_date__isnull=True).count()
     live_websites = Vhost.objects.filter(service__site__preallocated=False, service__site__end_date__isnull=True)\
         .exclude(main_domain__name__endswith="mws3.csx.cam.ac.uk").count()
     values = [{'x': 'Total Websites', 'y': websites},
-              {'x': 'Live Websites', 'y':live_websites},
+              {'x': 'Live Websites', 'y': live_websites},
               {'x': 'Test Websites', 'y': websites-live_websites},
-              {'x': 'Total MWS Servers', 'y': all.count()},
+              {'x': 'Total MWS Servers', 'y': all_sites.count()},
               {'x': 'Live MWS Servers', 'y': active},
-              {'x': 'Test MWS Servers', 'y': all.count()-active}]
+              {'x': 'Test MWS Servers', 'y': all_sites.count()-active}]
     data = [{
-      "key" : "MWS Servers",
-      "values" : values
+      "key": "MWS Servers",
+      "values": values
     }, ]
     return JsonResponse(data, safe=False)
 
@@ -258,7 +259,7 @@ def statsdatarequests(request):
         })
         odate = add_months(odate)
     data = [{
-      "key" : "MWS Servers",
-      "values" : values
+      "key": "MWS Servers",
+      "values": values
     }, ]
     return JsonResponse(data, safe=False)

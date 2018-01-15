@@ -89,11 +89,11 @@ MIDDLEWARE_CLASSES += (
     'mwsauth.middleware.CheckBannedUsers',
 )
 
-VM_END_POINT_COMMAND = ["userv", "mws-admin", "mws_xen_vm_api"]
+VM_END_POINT_COMMAND = ["mws-admin", "mws_xen_vm_api"]
 VM_API = "xen"
 
 EMAIL_TIMEOUT = 60
 
-IP_REG_API_END_POINT = IP_REG_API_END_POINT + ['live']
+IP_REG_API_ENV = 'live'
 
 from mws.logging_configuration import *

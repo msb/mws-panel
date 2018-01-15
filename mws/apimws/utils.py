@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import json
 import logging
+import subprocess
 import uuid
 from celery import shared_task, Task
 from django.core.mail import EmailMessage
@@ -137,3 +138,9 @@ def domain_confirmation_user(domain_name):
         to=[domain_name.vhost.service.site.email],
         headers={'Return-Path': getattr(settings, 'EMAIL_MWS3_SUPPORT', 'mws-support@uis.cam.ac.uk')}
     ).send()
+
+
+def execute_userv_process(userv_cmd, **kwargs):
+    """Executes a userv command on the host via ssh"""
+    ssh_cmd = ['ssh', '-i', settings.USERV_SSH_KEY, settings.USERV_SSH_TARGET, "userv  ".join(userv_cmd)]
+    return subprocess.check_output(ssh_cmd, **kwargs)

@@ -14,7 +14,7 @@ from django.conf import settings
 from django.core.mail import EmailMessage
 from django.db.models import Q
 from django.utils import timezone
-from apimws.utils import preallocate_new_site
+from apimws.utils import preallocate_new_site, execute_userv_process
 from sitesmanagement.models import Billing, Site, VirtualMachine, DomainName, ServerType
 
 
@@ -157,7 +157,7 @@ def check_subscription():
 @shared_task(base=ScheduledTaskWithFailure)
 def check_backups():
     try:
-        result = subprocess.check_output(["userv", "mws-admin", "mws_check_backups"], stderr=subprocess.STDOUT)
+        result = execute_userv_process(["mws-admin", "mws_check_backups"], stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         LOGGER.error("An error happened when checking ook backups in ent.\n\n"
                      "The output from the command was: %s\n", e.output)
@@ -167,6 +167,7 @@ def check_backups():
                      "The output from the command was: %s\n", e)
         raise e
     try:
+        # MSB test this
         result = json.loads(result)
     except Exception as e:
         LOGGER.error("An error happened when checking ook backups in ent.\n\n"
@@ -175,11 +176,12 @@ def check_backups():
     for failed_backup in result['failed']:
         LOGGER.error("A backup for the host %s did not complete last night", failed_backup)
 
-    for vm in VirtualMachine.objects.filter(Q(service__site__deleted=False, service__site__disabled=False,
-                                              service__site__start_date__lt=(date.today() - timedelta(days=1)),
-                                              service__status__in=('ansible', 'ansible_queued', 'ready'))
-                                                & (Q(service__site__end_date__isnull=True) |
-                                                   Q(service__site__end_date__gt=date.today()))):
+    for vm in VirtualMachine.objects.filter(
+            Q(service__site__deleted=False, service__site__disabled=False,
+              service__site__start_date__lt=(date.today() - timedelta(days=1)),
+              service__status__in=('ansible', 'ansible_queued', 'ready')) & (
+                    Q(service__site__end_date__isnull=True) | Q(service__site__end_date__gt=date.today())
+            )):
         if not filter(lambda host: host.startswith(vm.name), result['ok']+result['failed']):
             LOGGER.error("A backup for the host %s did not complete last night", vm.name)
 
@@ -268,7 +270,7 @@ def send_warning_last_or_none_admin():
                          "Server '%s'.\n\nThe Managed Web Server '%s' has no administrators and it will be suspended "
                          "in %s days if you do not contact %s and arrange to have at lease one administrator "
                          "added.\n\n" % (site.name, site.name, str(8-site.days_without_admin),
-                                          getattr(settings, 'EMAIL_MWS3_SUPPORT', 'mws-support@uis.cam.ac.uk')),
+                                         getattr(settings, 'EMAIL_MWS3_SUPPORT', 'mws-support@uis.cam.ac.uk')),
                     from_email="Managed Web Service Support <%s>"
                                % getattr(settings, 'EMAIL_MWS3_SUPPORT', 'mws-support@uis.cam.ac.uk'),
                     to=[site.email],

@@ -4,6 +4,7 @@ from celery import shared_task, Task
 from django.conf import settings
 from django.utils import timezone
 
+from apimws.utils import execute_userv_process
 from sitesmanagement.models import Site, Snapshot, Service, Vhost
 
 
@@ -67,18 +68,18 @@ class AnsibleTaskWithFailure(Task):
             service.save()
 
 
-# FIXME max_retries=2
-@shared_task(base=AnsibleTaskWithFailure, default_retry_delay=120, max_retries=0)
+@shared_task(base=AnsibleTaskWithFailure, default_retry_delay=120, max_retries=2)
 def launch_ansible_async(service, ignore_host_key=False):
     while service.status != 'ready':
         try:
             for vm in service.virtual_machines.all():
-                userv_cmd = ["userv"]
+                userv_cmd = []
                 if ignore_host_key:
                     userv_cmd.extend(["--defvar", "ANSIBLE_HOST_KEY_CHECKING=False"])
                 userv_cmd.extend(["mws-admin", "mws_ansible_host", vm.network_configuration.name])
-                ssh_cmd = ['ssh', '-i', settings.USERV_SSH_KEY, settings.USERV_SSH_TARGET, " ".join(userv_cmd)]
-                subprocess.check_output(ssh_cmd, stderr=subprocess.STDOUT)
+                execute_userv_process([
+                    'ssh', '-i', settings.USERV_SSH_KEY, settings.USERV_SSH_TARGET, " ".join(userv_cmd)
+                ], stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise launch_ansible_async.retry(exc=e)
         service = refresh_object(service)
@@ -132,9 +133,9 @@ def execute_playbook_on_vms(service, playbook_args):
     :param playbook_args: ansible playbook arguments
     """
     for vm in service.virtual_machines.all():
-        cmd = ["userv", "mws-admin", "mws_ansible_host_d", vm.network_configuration.name]
+        cmd = ["mws-admin", "mws_ansible_host_d", vm.network_configuration.name]
         cmd.extend(playbook_args)
-        subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        execute_userv_process(cmd, stderr=subprocess.STDOUT)
     return
 
 
@@ -142,8 +143,8 @@ def execute_playbook_on_vms(service, playbook_args):
 def delete_vhost_ansible(service, vhost_name, vhost_webapp):
     """delete the vhost folder and all its contents"""
     for vm in service.virtual_machines.all():
-        subprocess.check_output([
-            "userv", "mws-admin", "mws_delete_vhost", vm.network_configuration.name, "--tags", "delete_vhost",
+        execute_userv_process([
+            "mws-admin", "mws_delete_vhost", vm.network_configuration.name, "--tags", "delete_vhost",
             "-e", "delete_vhost_name=%s delete_vhost_webapp=%s" % (vhost_name, vhost_webapp)
         ], stderr=subprocess.STDOUT)
     launch_ansible(service)
@@ -155,8 +156,9 @@ def vhost_enable_apache_owned(vhost_id):
     """Changes ownership of the docroot folder to the user www-data"""
     vhost = Vhost.objects.get(id=vhost_id)
     for vm in vhost.service.virtual_machines.all():
-        subprocess.check_output(["userv", "mws-admin", "mws_vhost_owner", vm.network_configuration.name,
-                                 vhost.name, "enable"], stderr=subprocess.STDOUT)
+        execute_userv_process([
+            "mws-admin", "mws_vhost_owner", vm.network_configuration.name, vhost.name, "enable"
+        ], stderr=subprocess.STDOUT)
     vhost.apache_owned = True
     vhost.save()
     vhost_disable_apache_owned.apply_async(args=(vhost_id,), countdown=3600)  # Leave an hour to the user
@@ -167,7 +169,8 @@ def vhost_disable_apache_owned(vhost_id):
     """Revert the ownership of the docroot folder back to site-admin"""
     vhost = Vhost.objects.get(id=vhost_id)
     for vm in vhost.service.virtual_machines.all():
-        subprocess.check_output(["userv", "mws-admin", "mws_vhost_owner", vm.network_configuration.name,
-                                 vhost.name, "disable"], stderr=subprocess.STDOUT)
+        execute_userv_process([
+            "mws-admin", "mws_vhost_owner", vm.network_configuration.name, vhost.name, "disable"
+        ], stderr=subprocess.STDOUT)
     vhost.apache_owned = False
     vhost.save()

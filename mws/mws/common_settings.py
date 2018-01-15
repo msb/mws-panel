@@ -150,7 +150,7 @@ UCAMWEBAUTH_TIMEOUT = 30
 UCAMWEBAUTH_LOGOUT_REDIRECT = 'http://www.cam.ac.uk/'
 
 STRONGHOLD_PUBLIC_NAMED_URLS = ('raven_login', 'raven_return')
-#CELERY_ACCEPT_CONTENT = ['json'] # TODO
+# CELERY_ACCEPT_CONTENT = ['json'] # TODO
 
 OS_VERSION = "jessie"
 OS_VERSION_VMXENAPI = "jessie"
@@ -160,7 +160,10 @@ FINANCE_EMAIL = 'fh103@cam.ac.uk'
 
 CELERY_IMPORTS = ('apimws.xen', 'apimws.utils', 'apimws.jackdaw', 'apimws.ansible',
                   'sitesmanagement.cronjobs', 'apimws.ipreg')
-IP_REG_API_END_POINT = ['userv', 'mws-admin', 'mws_ipreg']
+IP_REG_API_ENV = 'dev'
+
+# TODO does this still make sense? - needs a refactor anyway
+VM_END_POINT_COMMAND = ["vmmanager"]
 
 # Maximum length of time which a domain can remain unapproved.
 MWS_DOMAIN_NAME_GRACE_DAYS = 30
