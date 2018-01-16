@@ -7,15 +7,10 @@ RUN apt-get -y update && apt-get upgrade -y && apt-get install -y \
         apache2 apache2-utils libapache2-mod-wsgi \
         libssl-dev libjpeg-dev netcat zlib1g-dev
 
-# Update pip and install Python dependencies. Note that vmmanager is installed
-# from a local copy of the source. We use pip install -e to install vmmanager so
-# that, if a local developer mounts the vmmanager sources as a volume, changes
-# in the sources are reflected within the container.
+# Update pip and install Python dependencies.
 COPY mws/requirements.txt ./
-COPY vmmanager /usr/src/vmmanager
 RUN pip install --upgrade pip && pip --version && \
-        pip install /usr/src/vmmanager && \
-        pip install --upgrade -r requirements.txt
+    pip install --upgrade -r requirements.txt
 
 # Provide wait-for-it within the container
 COPY docker/wait-for-it.sh ./
@@ -30,7 +25,6 @@ COPY mws /usr/src/app
 # Add volumes to allow overriding container contents with local directories for
 # development.
 VOLUME ["/usr/src/app"]
-VOLUME ["/usr/src/vmmanager"]
 
 # Environment variables to override Django settings module and default database
 # configuration. Note: at least DJANGO_DB_PASSWORD should be set.

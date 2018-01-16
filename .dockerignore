@@ -4,4 +4,3 @@
 # *except* specific directories
 !mws
 !docker
-!vmmanager

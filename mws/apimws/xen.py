@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import copy
 import logging
 import uuid
 import json
@@ -32,7 +31,7 @@ class VMAPIFailure(Exception):
 
 
 def vm_api_request(command, parameters, vm):
-    api_command = copy.copy(settings.VM_END_POINT_COMMAND)
+    api_command = ["mws-admin", "mws_xen_vm_api"]
     api_command.append(vm.cluster.hosts.first().hostname)
     api_command.append(command)
     api_command.append("'%s'" % json.dumps(parameters))
@@ -67,8 +66,9 @@ def secrets_prealocation_vm(vm):
     for keytype in SiteKey.ALGORITHMS:
         p = subprocess.Popen(
             ['ssh', '-i', settings.USERV_SSH_KEY, settings.USERV_SSH_TARGET, 'userv mws-admin mws_pubkey'],
-            stdin=subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
+        # TODO refactor this to use execute_userv_process()
         stdout, stderr = p.communicate(json.dumps(
             {"id": "mwssite-%d" % service.site.id, "keytype": "ssh" + keytype.lower()})
         )

@@ -162,8 +162,5 @@ CELERY_IMPORTS = ('apimws.xen', 'apimws.utils', 'apimws.jackdaw', 'apimws.ansibl
                   'sitesmanagement.cronjobs', 'apimws.ipreg')
 IP_REG_API_ENV = 'dev'
 
-# TODO does this still make sense? - needs a refactor anyway
-VM_END_POINT_COMMAND = ["vmmanager"]
-
 # Maximum length of time which a domain can remain unapproved.
 MWS_DOMAIN_NAME_GRACE_DAYS = 30

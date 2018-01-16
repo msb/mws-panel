@@ -87,14 +87,3 @@ Postgres password which can be read from the ``docker-compose.yml`` file.
 sudo docker-compose exec devel apt install postgresql-client
 sudo docker-compose exec devel ./manage.py dbshell
 ```
-
-## vmmanager
-
-The vmmanager utility is *copied* and installed into the container. However, the
-``vmmanager`` directory in the root is mounted inside the container as
-``/usr/src/vmmanager``. You can use ``pip install -e`` to use symlinks to allow
-changes to ``vmmanager`` to be reflected in the container:
-
-```
-sudo docker-compose exec devel pip install -e /usr/src/vmmanager
-```

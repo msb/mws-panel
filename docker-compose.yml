@@ -12,7 +12,6 @@ services:
       - "debugsmtp"
     volumes:
       - ./mws/:/usr/src/app
-      - ./vmmanager/:/usr/src/vmmanager
     environment:
       - DJANGO_SETTINGS_MODULE=mws.settings_developer
       - DJANGO_DB_PASSWORD=databasePass
