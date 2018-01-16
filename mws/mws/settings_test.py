@@ -3,7 +3,7 @@ from datetime import timedelta
 from celery.schedules import crontab
 from mws.common_settings import *
 # This file is generated when deploying
-from mws.production_secrets import *
+from mws.secrets import *
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False

@@ -2,7 +2,7 @@ from mws.common_settings import *
 
 # Tolerate the absence of secrets (but some parts of the system will break).
 try:
-    from production_secrets import *
+    from secrets import *
 except ImportError:
     pass
 
