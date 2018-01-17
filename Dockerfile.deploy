@@ -32,7 +32,7 @@ RUN chown -R www-data:www-data . && \
     touch /var/log/mws/mws.log && \
     chown -R www-data:www-data /var/log/mws && \
     python manage.py collectstatic --noinput --settings=mws.settings_${APP_ENV} && \
-    rm ./mws/secrets.py && \
+    rm ./mws/secrets.py* && \
     rm ${APACHE_CONF} && \
     a2enmod ssl proxy_http headers
 
