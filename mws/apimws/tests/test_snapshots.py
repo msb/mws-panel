@@ -135,10 +135,10 @@ class SnapshotsTests(TestCase):
             self.assertContains(response, "Your backup is being restored")
             self.assertRedirects(response, reverse('backups', kwargs={'service_id': service.id}))
 
-def assert_host_ansible_call(mock_subprocess, service, playbook_args, once=True):
+def assert_host_ansible_call(mock_execute_userv_process, service, playbook_args, once=True):
     args = ["mws-admin", "mws_ansible_host_d", service.virtual_machines.first().network_configuration.name]
     args.extend(playbook_args)
     if once:
-        mock_subprocess.assert_called_once_with(args, stderr=subprocess.STDOUT)
+        mock_execute_userv_process.assert_called_once_with(args, stderr=subprocess.STDOUT)
     else:
-        mock_subprocess.assert_called_with(args, stderr=subprocess.STDOUT)
+        mock_execute_userv_process.assert_called_with(args, stderr=subprocess.STDOUT)
