@@ -5,8 +5,10 @@ ENV APP_ENV ${APP_ENV}
 ENV DJANGO_SETTINGS_MODULE mws.settings_${APP_ENV}
 
 ARG APACHE_CONF=/etc/apache2/sites-available/000-default.conf
+ARG MWS_ROOT=/var/www/mws
+ARG MWS_LOG=/var/log/mws
 
-WORKDIR /var/www/mws
+WORKDIR ${MWS_ROOT}
 
 COPY mws/requirements.txt .
 
@@ -27,9 +29,9 @@ COPY docker/secrets.py ./mws
 
 # TODO apache runs as root but seem to need to make www-data own things ..?
 RUN chown -R www-data:www-data . && \
-    mkdir /var/log/mws && \
-    touch /var/log/mws/mws_error.log && \
-    touch /var/log/mws/mws.log && \
+    mkdir ${MWS_LOG} && \
+    touch ${MWS_LOG}/mws_error.log && \
+    touch ${MWS_LOG}/mws.log && \
     chown -R www-data:www-data /var/log/mws && \
     python manage.py collectstatic --noinput --settings=mws.settings_${APP_ENV} && \
     rm ./mws/secrets.py* && \
@@ -39,8 +41,9 @@ RUN chown -R www-data:www-data . && \
 COPY docker/ssh_config /root/.ssh/config
 
 VOLUME ["/data"]
-VOLUME ["./mws/secrets.py"]
+VOLUME ["${MWS_ROOT}/mws/secrets.py"]
 VOLUME ["${APACHE_CONF}"]
+VOLUME ["/etc/mws_panel_key"]
 
 EXPOSE 80
 EXPOSE 443

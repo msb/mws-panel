@@ -164,3 +164,5 @@ IP_REG_API_ENV = 'dev'
 
 # Maximum length of time which a domain can remain unapproved.
 MWS_DOMAIN_NAME_GRACE_DAYS = 30
+
+USERV_SSH_KEY = '/etc/mws_panel_key'
