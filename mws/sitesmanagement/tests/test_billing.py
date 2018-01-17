@@ -71,8 +71,7 @@ class BillingTests(TestCase):
         with mock.patch("apimws.vm.change_vm_power_state") as mock_change_vm_power_state:
             mock_change_vm_power_state.return_value = True
             mock_change_vm_power_state.delay.return_value = True
-            with mock.patch("apimws.ansible.subprocess") as mock_subprocess:
-                mock_subprocess.check_output.return_value.returncode = 0
+            with mock.patch("apimws.utils.execute_userv_process"):
                 site.enable()
 
         suspension.start_date = datetime.today() - timedelta(days=2)

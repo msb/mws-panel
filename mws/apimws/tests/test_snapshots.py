@@ -1,3 +1,5 @@
+import subprocess
+
 import datetime
 import os
 from django.conf import settings
@@ -26,11 +28,10 @@ class SnapshotsTests(TestCase):
         response = self.client.get(reverse('createsnapshot', kwargs={'service_id': service.id}))
         self.assertRedirects(response, reverse('backups', kwargs={'service_id': service.id}))
         self.assertEquals(Snapshot.objects.count(), 0)
-        with mock.patch("apimws.ansible.subprocess") as mock_subprocess:
-            mock_subprocess.check_output.return_value.returncode = 0
+        with mock.patch("apimws.utils.execute_userv_process") as mock_execute_userv_process:
             response = self.client.post(reverse('createsnapshot', kwargs={'service_id': service.id}),
                                         {'name': snapshot_name})
-            assert_host_ansible_call(mock_subprocess, service, [
+            assert_host_ansible_call(mock_execute_userv_process, service, [
                 "--tags", "create_custom_snapshot", "-e", 'create_snapshot_name="%s"' % snapshot_name
             ])
         self.assertRedirects(response, reverse('backups', kwargs={'service_id': service.id}))
@@ -62,11 +63,10 @@ class SnapshotsTests(TestCase):
         site = Site.objects.last()
         service = site.production_service
         snapshot_name = "snapshot1"
-        with mock.patch("apimws.ansible.subprocess") as mock_subprocess:
-            mock_subprocess.check_output.return_value.returncode = 0
+        with mock.patch("apimws.utils.execute_userv_process") as mock_execute_userv_process:
             response = self.client.post(reverse('createsnapshot', kwargs={'service_id': service.id}),
                                         {'name': snapshot_name})
-            assert_host_ansible_call(mock_subprocess, service, [
+            assert_host_ansible_call(mock_execute_userv_process, service, [
                 "--tags", "create_custom_snapshot", "-e", 'create_snapshot_name="%s"' % snapshot_name
             ])
             self.assertRedirects(response, reverse('backups', kwargs={'service_id': service.id}))
@@ -87,11 +87,10 @@ class SnapshotsTests(TestCase):
         site = Site.objects.last()
         service = site.production_service
         snapshot_name = "snapshot1"
-        with mock.patch("apimws.ansible.subprocess") as mock_subprocess:
-            mock_subprocess.check_output.return_value.returncode = 0
+        with mock.patch("apimws.utils.execute_userv_process") as mock_execute_userv_process:
             response = self.client.post(reverse('createsnapshot', kwargs={'service_id': service.id}),
                                         {'name': snapshot_name})
-            assert_host_ansible_call(mock_subprocess, service, [
+            assert_host_ansible_call(mock_execute_userv_process, service, [
                 "--tags", "create_custom_snapshot", "-e", 'create_snapshot_name="%s"' % snapshot_name
             ])
             self.assertRedirects(response, reverse('backups', kwargs={'service_id': service.id}))
@@ -102,7 +101,7 @@ class SnapshotsTests(TestCase):
             self.assertEquals(Snapshot.objects.count(), 1)
             snapshot = Snapshot.objects.first()
             response = self.client.post(reverse('deletesnapshot', kwargs={'snapshot_id': snapshot.id}))
-            assert_host_ansible_call(mock_subprocess, service, [
+            assert_host_ansible_call(mock_execute_userv_process, service, [
                 "--tags", "delete_snapshot", "-e", 'delete_snapshot_name="%s"' % snapshot_name
             ], once=False)
             self.assertRedirects(response, reverse('backups', kwargs={'service_id': service.id}))
@@ -137,9 +136,9 @@ class SnapshotsTests(TestCase):
             self.assertRedirects(response, reverse('backups', kwargs={'service_id': service.id}))
 
 def assert_host_ansible_call(mock_subprocess, service, playbook_args, once=True):
-    args = ["userv", "mws-admin", "mws_ansible_host_d", service.virtual_machines.first().network_configuration.name]
+    args = ["mws-admin", "mws_ansible_host_d", service.virtual_machines.first().network_configuration.name]
     args.extend(playbook_args)
     if once:
-        mock_subprocess.check_output.assert_called_once_with(args, stderr=mock_subprocess.STDOUT)
+        mock_subprocess.assert_called_once_with(args, stderr=subprocess.STDOUT)
     else:
-        mock_subprocess.check_output.assert_called_with(args, stderr=mock_subprocess.STDOUT)
+        mock_subprocess.assert_called_with(args, stderr=subprocess.STDOUT)
