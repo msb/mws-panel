@@ -141,6 +141,6 @@ def domain_confirmation_user(domain_name):
 
 
 def execute_userv_process(userv_cmd, **kwargs):
-    """Executes a userv command on the host via ssh"""
+    """Executes a userv command on the docker host via ssh"""
     ssh_cmd = ['ssh', '-i', settings.USERV_SSH_KEY, settings.USERV_SSH_TARGET, 'userv ' + ' '.join(userv_cmd)]
     return subprocess.check_output(ssh_cmd, **kwargs)

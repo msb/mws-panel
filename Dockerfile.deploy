@@ -38,6 +38,7 @@ RUN chown -R www-data:www-data . && \
     rm ${APACHE_CONF} && \
     a2enmod ssl proxy_http headers
 
+# FIXME instead of use ssh_keyscan in ansible to set the known_hosts.
 COPY docker/ssh_config /root/.ssh/config
 
 VOLUME ["/data"]
