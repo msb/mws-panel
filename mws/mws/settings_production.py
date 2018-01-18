@@ -89,6 +89,8 @@ MIDDLEWARE_CLASSES += (
     'mwsauth.middleware.CheckBannedUsers',
 )
 
+USERV_SSH_TARGET = 'www-data@panel.mws3.csx.cam.ac.uk'
+
 VM_API = "xen"
 
 EMAIL_TIMEOUT = 60
