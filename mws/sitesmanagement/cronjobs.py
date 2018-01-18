@@ -167,7 +167,6 @@ def check_backups():
                      "The output from the command was: %s\n", e)
         raise e
     try:
-        # MSB test this
         result = json.loads(result)
     except Exception as e:
         LOGGER.error("An error happened when checking ook backups in ent.\n\n"

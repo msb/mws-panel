@@ -143,7 +143,6 @@ def new_site_primary_vm(service, host_network_configuration=None):
     response = vm_api_request(command='create', parameters=parameters, vm=vm)
 
     try:
-        # MSB test this
         jresponse = json.loads(response)
     except ValueError as e:
         LOGGER.error("VM API response is not properly formated: %s", response)
